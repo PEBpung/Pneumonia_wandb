@@ -97,7 +97,7 @@ def train():
     model = model.to(device)
 
     for param in model.parameters():
-        print(param.data[0])
+        #print(param.data[0])
         break
 
     criterion = nn.CrossEntropyLoss()
