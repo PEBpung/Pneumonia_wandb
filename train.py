@@ -4,12 +4,14 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
+import random
 
 import numpy as np
 from PIL import Image
 import os
 
 random_seed = 1234
+random.seed(random_seed)
 torch.manual_seed(random_seed)
 torch.cuda.manual_seed(random_seed)
 torch.cuda.manual_seed_all(random_seed) 
@@ -79,7 +81,10 @@ def train():
 
     train_dataloader = DataLoader(train_data, 128, True)
     #test_dataloader = DataLoader(test_data, 128, True)
-    
+    # dataiter = iter(train_dataloader)
+    # images, labels = dataiter.next()
+    # print(images[0])
+
     fully_connected = FullyConnected().to(device)
 
     model_conv = models.resnet18(pretrained=True)
@@ -88,12 +93,12 @@ def train():
     for param in model_conv.parameters():
         param.requires_grad = False
     
-    for param in model_conv.parameters():
-        print(param.data[0])
-        break
-
     model = nn.Sequential(model_conv, fully_connected)
     model = model.to(device)
+
+    for param in model.parameters():
+        print(param.data[0])
+        break
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
