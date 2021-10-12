@@ -9,13 +9,10 @@ import numpy as np
 from PIL import Image
 import os
 
-import wandb
-import config
-
 random_seed = 3
 torch.manual_seed(random_seed)
 torch.cuda.manual_seed(random_seed)
-torch.cuda.manual_seed_all(random_seed) # if use multi-GPU
+torch.cuda.manual_seed_all(random_seed) 
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 np.random.seed(random_seed)
@@ -39,8 +36,6 @@ class chest_xray_data(object):
         if self.transforms is not None:
             img, label = self.transforms(img, label)
         return img, label
-
-
 
 def train_epoch(dataloader, model, loss_fn, optimizer, device, num_epoch):
     for _ in range(num_epoch):
@@ -75,19 +70,20 @@ class FullyConnected(nn.Module):
         return x
 
 def train():
-    root = "input/chest-xray-pneumonia"
-    train_data = chest_xray_data(root, 'train')
 
+    root = "input/chest-xray-pneumonia"
     device = 'cuda' if torch.cuda.is_available() else  'cpu'
+
+    train_data = chest_xray_data(root, 'train')
     #test_data = chest_xray_data(root, 'test')
 
     train_dataloader = DataLoader(train_data, 128, True)
     #test_dataloader = DataLoader(test_data, 128, True)
     
     fully_connected = FullyConnected().to(device)
-    model_conv = models.resnet34(pretrained=True)
-    model_conv = model_conv.to(device)
 
+    model_conv = models.resnet18(pretrained=True)
+    model_conv = model_conv.to(device)
 
     for param in model_conv.parameters():
         param.requires_grad = False
@@ -98,7 +94,7 @@ def train():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
-    train_epoch(train_dataloader, model, criterion, optimizer, device, num_epoch=10)
+    train_epoch(train_dataloader, model, criterion, optimizer, device, num_epoch=20)
 
 if __name__ == '__main__':
     train()
