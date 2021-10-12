@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 import os
 
-random_seed = 3
+random_seed = 1234
 torch.manual_seed(random_seed)
 torch.cuda.manual_seed(random_seed)
 torch.cuda.manual_seed_all(random_seed) 
@@ -87,6 +87,10 @@ def train():
 
     for param in model_conv.parameters():
         param.requires_grad = False
+    
+    for param in model_conv.parameters():
+        print(param.data[0])
+        break
 
     model = nn.Sequential(model_conv, fully_connected)
     model = model.to(device)
