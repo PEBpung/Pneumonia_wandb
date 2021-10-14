@@ -1,5 +1,5 @@
 import torch
-from torchvision import datasets, models
+from torchvision import models
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 import torch.nn as nn
@@ -57,6 +57,7 @@ def train_epoch(dataloader, model, loss_fn, optimizer, device, wandb, num_epoch)
 
             if batch % int(size/10) == 0:
                 loss, current = loss.item(), batch
+                ######## wandb log ########
                 wandb.log({"loss": loss})
                 print(f"loss: {loss:>7f}  [{current:>2d}/{size:>2d}]")
 
@@ -76,6 +77,8 @@ class FullyConnected(nn.Module):
 
 def train():
     wandb.init(config=config.hyperparameter_defaults)
+
+    ######## wandb initialize ########
     w_config = wandb.config
     root = "input/chest-xray-pneumonia"
 
@@ -96,9 +99,11 @@ def train():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=w_config.learning_rate)
 
+    ######## wandb watch ########
     wandb.watch(model, log='all')
     
     train_epoch(train_dataloader, model, criterion, optimizer, device, wandb, num_epoch=20)
 
+######## wandb sweep & agent ########
 sweep_id = wandb.sweep(config.sweep_config, project='pneumonia_sweep', entity='pebpung')
 wandb.agent(sweep_id, train, count=20)
