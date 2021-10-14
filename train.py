@@ -31,6 +31,7 @@ class chest_xray_data(object):
         return len(self.imgs)
 
     def __getitem__(self, idx):
+        #print(f'idx : {idx}')
         img_path = os.path.join(self.data_dir, self.imgs[idx][1], self.imgs[idx][0])
         img = Image.open(img_path).convert('RGB').resize((448, 448))
         img = np.moveaxis(np.array(img)/255.0, -1, 0)
@@ -57,7 +58,6 @@ def train_epoch(dataloader, model, loss_fn, optimizer, device, num_epoch):
                 loss, current = loss.item(), batch
                 print(f"loss: {loss:>7f}  [{current:>2d}/{size:>2d}]")
 
-
 class FullyConnected(nn.Module):
     def __init__(self):
         super(FullyConnected, self).__init__()
@@ -72,14 +72,13 @@ class FullyConnected(nn.Module):
         return x
 
 def train():
-
     root = "input/chest-xray-pneumonia"
     device = 'cuda' if torch.cuda.is_available() else  'cpu'
 
     train_data = chest_xray_data(root, 'train')
     #test_data = chest_xray_data(root, 'test')
 
-    train_dataloader = DataLoader(train_data, 128, True)
+    train_dataloader = DataLoader(train_data, 16, False)
     #test_dataloader = DataLoader(test_data, 128, True)
     # dataiter = iter(train_dataloader)
     # images, labels = dataiter.next()
