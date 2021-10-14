@@ -119,10 +119,8 @@ def train_model(model, criterion, optimizer, num_epochs, device="cuda"):
             running_corrects = 0
             
             for i, (inputs, labels) in enumerate(dataloaders[phase]):
-                
+                inputs, labels = inputs.to(device), labels.to(device)
                 optimizer.zero_grad()
-                inputs = inputs.to("cuda:0")
-                labels = labels.to("cuda:0")
 
                 with torch.set_grad_enabled(phase == "train"):
                     outputs = model(inputs)
@@ -168,4 +166,4 @@ model = PneumoniaNet()
 model.to(device)
 criterion = nn.BCEWithLogitsLoss()
 optimizer = optim.Adam(model.parameters(), lr=lr)
-model = train_model(model, criterion, optimizer, num_epochs)
+model = train_model(model, criterion, optimizer, num_epochs, device)
