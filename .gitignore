@@ -1,2 +1,4 @@
 input/
 wandb/
+__pycache__/
+dataset/
