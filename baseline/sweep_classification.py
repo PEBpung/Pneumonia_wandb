@@ -38,7 +38,7 @@ def wandb_setting():
     ##########################################데이터 로드 하기#################################################
     data_dir = os.path.join(os.getcwd(), "dataset") #train, val 폴더가 들어있는 경로
     datasets = {x: DiseaseDataset(data_dir=os.path.join(data_dir, x), img_size=224, bit=8, data_type='img', mode= x) for x in ['train', 'val']}
-    dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=False, num_workers=0) for x in ['train', 'val']}
+    dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=False, num_workers=5) for x in ['train', 'val']}
     dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
     num_iteration = {x: np.ceil(dataset_sizes[x] / batch_size) for x in ['train', 'val']}
     #############################################################################################################################
@@ -55,12 +55,12 @@ def wandb_setting():
     scheduler_lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer_ft, mode='min', factor=0.5, patience=10)
     scheduler_warmup = GradualWarmupScheduler(optimizer_ft, multiplier=1, total_epoch=5, after_scheduler=scheduler_lr)
 
-    wandb.watch(model, log='all') #wandb에 남길 log 기록하기
-    sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup,  device, wandb, num_epoch=30)
+    wandb.watch(net, log='all') #wandb에 남길 log 기록하기
+    sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup,  device, wandb, num_epoch=2)
 
     #model_ft = sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup,  device, wandb, num_epoch=30)
 
-sweep_id = wandb.sweep(config.sweep_config, project="test_v2", entity="pebpung")
+sweep_id = wandb.sweep(config.sweep_config, project="pebpung_v1", entity="pneumonia")
 wandb.agent(sweep_id, wandb_setting, count=20)
 
 
