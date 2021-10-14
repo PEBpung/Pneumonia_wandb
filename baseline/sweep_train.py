@@ -57,14 +57,13 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
-                if phase == 'train':
-                    scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
+                # if phase == 'train':
+                #     scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
-
-            wandb.log({'Epoch {} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc)})
+            wandb.log({'Epoch': epoch, "loss": epoch_loss, "acc": epoch_acc})
             print('Epoch {} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
             # deep copy the model
