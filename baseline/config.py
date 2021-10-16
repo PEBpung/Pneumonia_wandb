@@ -13,20 +13,21 @@ hyperparameter_defaults  = {
 
 sweep_config = {
     'method': 'random',
+    'project': "pebpung_v1", 
+    'entity': 'pebpung',
     'metric' : {
-        'name': 'loss',
+        'name': 'val_loss',
         'goal': 'minimize'   
         },
     'parameters' : {
         'optimizer': {
             'values': ['adam', 'sgd']
             },
-        'dropout': {
-            'values': [0.3, 0.4, 0.5]
-            },
-        'epochs': {
-            'values': [3]
-            },
+        ##여러 줄 주석 추가: ctrl+K+C 동시에 누르기
+        ##여러줄 주석 해제: ctrl+K+U 동시에 누르기
+        # 'dropout': {
+        #     'values': [0.3, 0.4, 0.5]
+        #     },
         'learning_rate': {
             'distribution': 'uniform',
             'min': 0,
@@ -38,12 +39,12 @@ sweep_config = {
             'min': math.log(16),
             'max': math.log(32),
             },
-        'data_augmentation1': {
-            'values': ['brightness', 'no_aug']
-        },
-        'data_augmentation2': {
-            'values': ['contrast', 'no_aug']
-        },
+        # 'data_augmentation1': {
+        #     'values': ['brightness', 'no_aug']
+        # },
+        # 'data_augmentation2': {
+        #     'values': ['contrast', 'no_aug']
+        # },
     },
     'early_terminate':{
         'type': 'hyperband',

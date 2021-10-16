@@ -26,7 +26,7 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 np.random.seed(random_seed)
 ###########################################
-
+pretrained = True
 
 def wandb_setting():
     wandb.init(config=config.hyperparameter_defaults)
@@ -44,24 +44,28 @@ def wandb_setting():
     #############################################################################################################################
 
     num_classes =  len(os.listdir(os.path.join(data_dir, 'train'))) #train 폴더 안에 클래스 개수 만큼의 폴더가 있음
+    
+    if pretrained == True:
+        net = model.PneumoniaNet(img_channel=1) # pretrained 모델 사용
+    else:
+        net = model.ResNet50(img_channel=1, num_classes=num_classes) #gray scale = 1, color scale =3
 
-    net = model.ResNet50(img_channel=1, num_classes=num_classes) #gray scale = 1, color scale =3
-    net = net.to(device) #딥러닝 모델 GPU 업로드
+    net = net.to(device) #딥러닝 모S델 GPU 업로드
 
     criterion = nn.CrossEntropyLoss() #loss 형태 정해주기
     optimizer_ft = optim.SGD(net.parameters(), lr=w_config.learning_rate, momentum=0.9)# optimizer 종류 정해주기
 
     #Learning rate scheduler: Warm-up with ReduceLROnPlateau
-    #scheduler_lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer_ft, mode='min', factor=0.5, patience=10)
-    #scheduler_warmup = GradualWarmupScheduler(optimizer_ft, multiplier=1, total_epoch=5, after_scheduler=scheduler_lr)
+    scheduler_lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer_ft, mode='min', factor=0.5, patience=10)
+    scheduler_warmup = GradualWarmupScheduler(optimizer_ft, multiplier=1, total_epoch=5, after_scheduler=scheduler_lr)
 
-    wandb.watch(net, log='all') #wandb에 남길 log 기록하기, parameters를 사용하면 log
-    sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, None ,device, wandb, num_epoch=2)
+    wandb.watch(net, log='all') # wandb에 남길 log 기록하기, all은 파라미터와 gradient 확인
+    sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup ,device, wandb, num_epoch=30)
 
     #model_ft = sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup,  device, wandb, num_epoch=30)
 
 sweep_id = wandb.sweep(config.sweep_config, project="pebpung_v1", entity="pneumonia")
-wandb.agent(sweep_id, wandb_setting, count=10)
+wandb.agent(sweep_id, wandb_setting, count=1)
 
 
 

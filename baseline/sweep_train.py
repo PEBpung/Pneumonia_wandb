@@ -5,6 +5,8 @@ import numpy as np
 
 
 def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim, scheduler, device, wandb, num_epoch):
+    wandb.watch(net, criterion, log='all', log_freq=10)
+    
     since = time.time()
 
     best_model_wts = copy.deepcopy(net.state_dict())
@@ -57,13 +59,18 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
-                # if phase == 'train':
-                #     scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
+                if phase == 'train':
+                    scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
-            wandb.log({'Epoch': epoch, "loss": epoch_loss, "acc": epoch_acc})
+            if phase == 'train':
+                wandb.log({'train_loss': epoch_loss, 'train_acc': epoch_acc})
+            
+            elif phase == 'val':
+                wandb.log({'val_loss': epoch_loss, 'val_acc': epoch_acc})
+
             print('Epoch {} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
             # deep copy the model
