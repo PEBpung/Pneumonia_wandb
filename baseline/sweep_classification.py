@@ -60,12 +60,12 @@ def wandb_setting():
     scheduler_warmup = GradualWarmupScheduler(optimizer_ft, multiplier=1, total_epoch=5, after_scheduler=scheduler_lr)
 
     wandb.watch(net, log='all') # wandb에 남길 log 기록하기, all은 파라미터와 gradient 확인
-    sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup ,device, wandb, num_epoch=30)
+    sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup ,device, wandb, num_epoch=3)
 
     #model_ft = sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup,  device, wandb, num_epoch=30)
 
 sweep_id = wandb.sweep(config.sweep_config, project="pebpung_v1", entity="pneumonia")
-wandb.agent(sweep_id, wandb_setting, count=1)
+wandb.agent(sweep_id, wandb_setting, count=20)
 
 
 

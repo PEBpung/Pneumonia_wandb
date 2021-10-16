@@ -12,7 +12,7 @@ hyperparameter_defaults  = {
     }
 
 sweep_config = {
-    'method': 'random',
+    'method': 'bayes',
     'project': "pebpung_v1", 
     'entity': 'pebpung',
     'metric' : {
