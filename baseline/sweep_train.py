@@ -11,7 +11,7 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
 
     best_model_wts = copy.deepcopy(net.state_dict())
     best_loss = 100
-
+    all_labels, all_preds, all_prob = [], [], []
     for epoch in range(num_epoch):
         for phase in ['train', 'val']:
             if phase == 'train':
@@ -22,6 +22,8 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
             loss_arr = []
             running_corrects = 0
             running_loss = 0
+            
+            classes = ['NORMAL', 'PNEUMONIA']
 
             #train dataset 로드하기
             for iteration_th, (inputs, labels) in enumerate(dataloaders[phase]): #iteration_th: 몇 번재 iteration 인지 알려 줌 "ex) batch_th=0 ← 첫 번째 batch 시작"
@@ -34,7 +36,6 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
                 # backward pass ← zero the parameter gradients
                 optim.zero_grad()
 
-                
                 with torch.set_grad_enabled(phase == "train"): # track history if only in train
                     outputs = net(inputs) #output 결과값은 softmax 입력 직전의 logit 값들
                     _, preds = torch.max(outputs, 1) #pred: 0 → Normal <== labels 참고
@@ -42,6 +43,10 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
                     loss = criterion(outputs, labels) #criterion에 output이 들어가면 softmax 이 후의 확률 값으로 변하고, 변환된 확률 값과 label을 비교하여 loss 계산
 
                     loss_arr += [loss.item()] #Iteration 당 Loss 계산
+
+                    all_labels += labels.to("cpu")
+                    all_preds += preds.to("cpu")
+                    all_prob.extend(outputs.to("cpu").detach().numpy())
 
                     if phase == "train":
                         loss.backward() #계산된 loss에 의해 backward (gradient) 계산
@@ -70,6 +75,12 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
             
             elif phase == 'val':
                 wandb.log({'val_loss': epoch_loss, 'val_acc': epoch_acc})
+                # ROC
+                wandb.log({'roc': wandb.plots.ROC(all_labels, all_prob, classes)})
+                # Precision Recall
+                wandb.log({'pr': wandb.plots.precision_recall(all_labels, all_prob, classes)})
+                # Confusion Matrix
+                wandb.sklearn.plot_confusion_matrix(all_labels, all_preds, labels=classes)
 
             print('Epoch {} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
