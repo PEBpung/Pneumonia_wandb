@@ -52,7 +52,7 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
                         loss.backward() #계산된 loss에 의해 backward (gradient) 계산
                         optim.step() #계산된 gradient를 참고하여 backpropagation으로 update
                         
-                        wandb.log({"Train Iteration loss": np.mean(loss_arr)})
+                        wandb.log({"Iter_loss": np.mean(loss_arr)})
                         print("TRAIN: EPOCH %04d / %04d | ITERATION %04d / %04d | LOSS %.4f" %
                         (epoch, num_epoch, iteration_th, num_iteration['train'], np.mean(loss_arr)))
 
@@ -64,8 +64,8 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
-                if phase == 'train':
-                    scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
+            if phase == 'train':
+                scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
