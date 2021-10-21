@@ -2,13 +2,13 @@ import torch.nn as nn
 import torchvision.models as models
 
 class PneumoniaNet(nn.Module):
-    def __init__(self, img_channel, pretrained=True):
+    def __init__(self, img_channel, num_classes, pretrained=True):
         super(PneumoniaNet, self).__init__()
         self.backbone = models.resnet18(pretrained=pretrained)
         self.backbone.conv1 = nn.Conv2d(img_channel, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
 
         self.num_features = self.backbone.fc.in_features
-        self.fc = nn.Linear(in_features=512, out_features=2) 
+        self.fc = nn.Linear(in_features=512, out_features=num_classes) 
     
     def forward(self, x):
         x = self.backbone.conv1(x)

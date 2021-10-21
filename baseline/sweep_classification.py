@@ -16,6 +16,8 @@ from pytorch_warmup.warmup_scheduler import GradualWarmupScheduler
 import wandb
 import config
 
+
+
 ######### Random seed 고정해주기###########
 random_seed = 1234
 random.seed(random_seed)
@@ -26,7 +28,8 @@ torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 np.random.seed(random_seed)
 ###########################################
-pretrained = True
+
+pretrained = False
 
 def wandb_setting():
     wandb.init(config=config.hyperparameter_defaults)
@@ -36,8 +39,8 @@ def wandb_setting():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     ##########################################데이터 로드 하기#################################################
-    data_dir = os.path.join(os.getcwd(), "dataset") #train, val 폴더가 들어있는 경로
-    datasets = {x: DiseaseDataset(data_dir=os.path.join(data_dir, x), img_size=224, bit=8, data_type='img', mode= x) for x in ['train', 'val']}
+    data_dir = os.path.join(os.getcwd(), "input/RSNA_COVID_512") #train, val 폴더가 들어있는 경로
+    datasets = {x: DiseaseDataset(data_dir=os.path.join(data_dir, x), img_size=512, bit=8, data_type='img', mode= x) for x in ['train', 'val']}
     dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=False, num_workers=5) for x in ['train', 'val']}
     dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
     num_iteration = {x: np.ceil(dataset_sizes[x] / batch_size) for x in ['train', 'val']}
@@ -46,7 +49,7 @@ def wandb_setting():
     num_classes =  len(os.listdir(os.path.join(data_dir, 'train'))) #train 폴더 안에 클래스 개수 만큼의 폴더가 있음
     
     if pretrained == True:
-        net = model.PneumoniaNet(img_channel=1) # pretrained 모델 사용
+        net = model.PneumoniaNet(img_channel=1, num_classes=num_classes) # pretrained 모델 사용
     else:
         net = model.ResNet50(img_channel=1, num_classes=num_classes) #gray scale = 1, color scale =3
 
@@ -60,12 +63,12 @@ def wandb_setting():
     scheduler_warmup = GradualWarmupScheduler(optimizer_ft, multiplier=1, total_epoch=5, after_scheduler=scheduler_lr)
 
     wandb.watch(net, log='all') # wandb에 남길 log 기록하기, all은 파라미터와 gradient 확인
-    sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup ,device, wandb, num_epoch=3)
+    sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup ,device, wandb, num_epoch=100)
 
     #model_ft = sweep_train.train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optimizer_ft, scheduler_warmup,  device, wandb, num_epoch=30)
 
-sweep_id = wandb.sweep(config.sweep_config, project="pebpung_v1", entity="pneumonia")
-wandb.agent(sweep_id, wandb_setting, count=20)
+sweep_id = wandb.sweep(config.sweep_config, project="covid_v1", entity="pebpung")
+wandb.agent(sweep_id, wandb_setting, count=1)
 
 
 

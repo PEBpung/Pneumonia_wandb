@@ -2,7 +2,7 @@ import math
 
 hyperparameter_defaults  = {
         'epochs': 2,
-        'batch_size': 128,
+        'batch_size': 8,
         'fc_layer_size': 128,
         'weight_decay': 0.0005,
         'learning_rate': 1e-3,
@@ -12,6 +12,7 @@ hyperparameter_defaults  = {
     }
 
 sweep_config = {
+    'name': 'bayes_custom_model',
     'method': 'bayes',
     'project': "pebpung_v1", 
     'entity': 'pebpung',
@@ -33,12 +34,12 @@ sweep_config = {
             'min': 0,
             'max': 0.1
             },
-        'batch_size': {
-            'distribution': 'q_log_uniform',
-            'q': 1,
-            'min': math.log(16),
-            'max': math.log(32),
-            },
+        # 'batch_size': {
+        #     'distribution': 'q_log_uniform',
+        #     'q': 1,
+        #     'min': math.log(16),
+        #     'max': math.log(32),
+        #     },
         # 'data_augmentation1': {
         #     'values': ['brightness', 'no_aug']
         # },

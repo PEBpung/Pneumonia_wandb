@@ -2,7 +2,7 @@ import time
 import copy
 import torch
 import numpy as np
-
+import gc
 
 def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim, scheduler, device, wandb, num_epoch):
     wandb.watch(net, criterion, log='all', log_freq=10)
@@ -23,7 +23,7 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
             running_corrects = 0
             running_loss = 0
             
-            classes = ['NORMAL', 'PNEUMONIA']
+            classes = ['Atypical','Indeterminate', 'Negative', 'Typical']
 
             #train dataset 로드하기
             for iteration_th, (inputs, labels) in enumerate(dataloaders[phase]): #iteration_th: 몇 번재 iteration 인지 알려 줌 "ex) batch_th=0 ← 첫 번째 batch 시작"
@@ -88,7 +88,9 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
             if epoch_loss < best_loss:
                 best_loss = epoch_loss
                 best_model_wts = copy.deepcopy(net.state_dict())
-
+        
+        gc.collect()
+        torch.cuda.empty_cache()
         print()
             
 

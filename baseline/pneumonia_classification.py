@@ -20,7 +20,7 @@ from pytorch_warmup.warmup_scheduler import GradualWarmupScheduler
 
 
 #########Random seed 고정해주기###########
-random_seed = 1234
+random_seed = 3407
 random.seed(random_seed)
 torch.manual_seed(random_seed)
 torch.cuda.manual_seed(random_seed)
@@ -32,9 +32,9 @@ np.random.seed(random_seed)
 
 
 ##########################################데이터 로드 하기#################################################
-data_dir = os.path.join(os.getcwd(), "dataset")
+data_dir = os.path.join(os.getcwd(), "input/RSNA_COVID_512")
 print(data_dir)
-batch_size= 32
+batch_size= 8
 """
 dataset_train = DiseaseDataset(data_dir=os.path.join(data_dir, 'train'), img_size=224, bit=8, data_type='img', mode='train')
 train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=False, num_workers=0)
@@ -61,7 +61,7 @@ num_iteration = {
 
 """
 
-datasets = {x: DiseaseDataset(data_dir=os.path.join(data_dir, x), img_size=224, bit=8, data_type='img', mode= x ) for x in ['train', 'val']}
+datasets = {x: DiseaseDataset(data_dir=os.path.join(data_dir, x), img_size=512, bit=8, data_type='img', mode= x ) for x in ['train', 'val']}
 dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=False, num_workers=0) for x in ['train', 'val']}
 dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
 num_iteration = {x: np.ceil(dataset_sizes[x] / batch_size) for x in ['train', 'val']}
@@ -149,7 +149,9 @@ def train_model(net, criterion, optim, scheduler, num_epoch):
 
 ####train 폴더 안에 클래스 개수 만큼의 폴더가 있음######
 num_classes =  len(os.listdir(os.path.join(data_dir, 'train'))) 
-net = model.ResNet50(img_channel=1, num_classes=num_classes)
+
+net = model.PneumoniaNet(img_channel=1, num_classes=num_classes)
+# net = model.ResNet50(img_channel=1, num_classes=num_classes)
 
 #딥러닝 모델 GPU 업로드
 net = net.to(device)
@@ -157,6 +159,10 @@ net = net.to(device)
 criterion = nn.CrossEntropyLoss()
 
 # Observe that all parameters are being optimized
+
+
+# optimizer_ft = optim.Adam(net.parameters(), lr=0.0001)
+
 optimizer_ft = optim.SGD(net.parameters(), lr=0.0001, momentum=0.9)
 
 # Decay
@@ -164,6 +170,7 @@ scheduler_lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer_ft
                                          mode='min',
                                          factor=0.5,
                                          patience=10,)
+
 scheduler_warmup = GradualWarmupScheduler(optimizer_ft, multiplier=1, total_epoch=5, after_scheduler=scheduler_lr)
 
-model_ft = train_model(net, criterion, optimizer_ft, scheduler_warmup, num_epoch=30)
+model_ft = train_model(net, criterion, optimizer_ft, scheduler_warmup, num_epoch=3)

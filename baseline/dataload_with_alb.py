@@ -72,7 +72,15 @@ class DiseaseDataset(object):
                 np_img = np_img[:, :, np.newaxis]
             #↑↑↑그래서 np.newaxis로 차원 하나를 더 만듦  (width, height) → (width, height, dimension)
 
-            label = 0 if self.imgs[idx][0] == 'NORMAL' else 1
+            if self.imgs[idx][0] == 'Atypical':
+                label = 0
+            elif self.imgs[idx][0] == 'Indeterminate':
+                label = 1
+            elif self.imgs[idx][0] == 'Negative':
+                label = 2
+            elif self.imgs[idx][0] == 'Typical':
+                label = 3
+
             img = self.transforms(image=np_img)["image"]
         
         elif type == 'numpy':
@@ -88,7 +96,7 @@ class DiseaseDataset(object):
 
 # For test
 if __name__ == '__main__':
-    train_data_dir = os.path.join(os.getcwd(), "dataset", "train")
+    train_data_dir = os.path.join(os.getcwd(), "input/RSNA_COVID_512", "train")
     train_dataset = DiseaseDataset(train_data_dir, 512, 8, 'img', 'train')
     dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=1, num_workers=0)
 
