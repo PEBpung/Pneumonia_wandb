@@ -12,6 +12,7 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
     best_model_wts = copy.deepcopy(net.state_dict())
     best_loss = 100
     all_labels, all_preds, all_prob = [], [], []
+
     for epoch in range(num_epoch):
         for phase in ['train', 'val']:
             if phase == 'train':
@@ -21,7 +22,7 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
 
             loss_arr = []
             running_corrects = 0
-            running_loss = 0
+            running_loss = 0.0
             
             classes = ['Atypical','Indeterminate', 'Negative', 'Typical']
 
@@ -44,9 +45,6 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
 
                     loss_arr += [loss.item()] #Iteration 당 Loss 계산
 
-                    all_labels += labels.to("cpu")
-                    all_preds += preds.to("cpu")
-                    all_prob.extend(outputs.to("cpu").detach().numpy())
 
                     if phase == "train":
                         loss.backward() #계산된 loss에 의해 backward (gradient) 계산
@@ -57,15 +55,19 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
                         (epoch, num_epoch, iteration_th, num_iteration['train'], np.mean(loss_arr)))
 
                     elif phase == 'val':
-                        print()
-                        print("VALID: EPOCH %04d / %04d | BATCH %04d / %04d | LOSS %.4f" %
-                                (epoch, num_epoch, num_iteration['val'], num_iteration['val'], np.mean(loss_arr))) 
+                        all_labels += labels.to("cpu")
+                        all_preds += preds.to("cpu")
+                        all_prob.extend(outputs.to("cpu").detach().numpy())
+                         
 
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
             if phase == 'train':
                 scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
+            
+            print("VALID: EPOCH %04d / %04d | BATCH %04d / %04d | LOSS %.4f" %
+                                (epoch, num_epoch, np.mean(loss_arr)))
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
