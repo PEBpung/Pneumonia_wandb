@@ -3,6 +3,7 @@ import copy
 import torch
 import numpy as np
 import gc
+from sklearn.metrics import confusion_matrix
 
 def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim, scheduler, device, wandb, num_epoch):
     wandb.watch(net, criterion, log='all', log_freq=10)
@@ -62,20 +63,17 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
 
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
-
-            if phase == 'train':
-                scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
             
-            print("VALID: EPOCH %04d / %04d | BATCH %04d / %04d | LOSS %.4f" %
-                                (epoch, num_epoch, np.mean(loss_arr)))
 
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
             if phase == 'train':
+                scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
                 wandb.log({'train_loss': epoch_loss, 'train_acc': epoch_acc})
             
             elif phase == 'val':
+                print(f"VALID: EPOCH {epoch:>04d} / {num_epoch:>04d} | LOSS  {np.mean(loss_arr):>.4f}")
                 wandb.log({'val_loss': epoch_loss, 'val_acc': epoch_acc})
                 # ROC
                 wandb.log({'roc': wandb.plots.ROC(all_labels, all_prob, classes)})
@@ -87,10 +85,10 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
             print('Epoch {} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
             # deep copy the model
-            if epoch_loss < best_loss:
+            if phase == 'val' and epoch_loss < best_loss:
                 best_loss = epoch_loss
                 best_model_wts = copy.deepcopy(net.state_dict())
-        
+
         gc.collect()
         torch.cuda.empty_cache()
         print()

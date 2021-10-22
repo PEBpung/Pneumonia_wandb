@@ -24,6 +24,12 @@ sweep_config = {
         'optimizer': {
             'values': ['adam', 'sgd']
             },
+        'shuffle': {
+            'values': [True, False]
+            },
+        'momentum': {
+            'values' : [0.1, 0.3, 0.5, 0.9, 0.99]
+        },
         ##여러 줄 주석 추가: ctrl+K+C 동시에 누르기
         ##여러줄 주석 해제: ctrl+K+U 동시에 누르기
         # 'dropout': {
@@ -32,7 +38,7 @@ sweep_config = {
         'learning_rate': {
             'distribution': 'uniform',
             'min': 0,
-            'max': 0.1
+            'max': 0.0001
             },
         # 'batch_size': {
         #     'distribution': 'q_log_uniform',
