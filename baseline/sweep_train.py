@@ -16,7 +16,7 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
     classes_name = classes_name
 
     for epoch in range(num_epoch):
-        all_labels, all_preds = [], []
+        all_labels, all_preds, all_prob = [], [], []
 
         for phase in ['train', 'val']:
             if phase == 'train':
@@ -52,13 +52,14 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
                         loss.backward() #계산된 loss에 의해 backward (gradient) 계산
                         optim.step() #계산된 gradient를 참고하여 backpropagation으로 update
                         
-                        wandb.log({"Train Iteration loss": np.mean(loss_arr)})
+                        wandb.log({"Train Iteration loss": np.mean(loss_arr), "custom_step" : iteration_th})
                         print("TRAIN: EPOCH %04d / %04d | ITERATION %04d / %04d | LOSS %.4f" %
                         (epoch+1, num_epoch, iteration_th, num_iteration['train'], np.mean(loss_arr)))
 
                     elif phase == 'val':
                         all_labels += labels.to("cpu")
                         all_preds += preds.to("cpu") # .detach()를 붙여야 될까?
+                        all_prob.extend(outputs.to("cpu").detach().numpy())
                          
 
                 running_loss += loss.item() * inputs.size(0)
@@ -71,28 +72,29 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
             if phase == 'train':
                 scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
                 #scheduler.step(np.mean(loss_arr)) #←← warm-up 사용하지 않을 시 learning rate scheduler 실행
-                wandb.log({'train_epoch_loss': epoch_loss, 'Epoch Train ACC': epoch_acc})
+                wandb.log({'train_epoch_loss': epoch_loss, 'Epoch Train ACC': epoch_acc, 'custom_step' : epoch})
             
             elif phase == 'val':
-                wandb.log({'val_epoch_loss': epoch_loss, 'Epoch Val ACC': epoch_acc})
+                wandb.log({'val_epoch_loss': epoch_loss, 'Epoch Val ACC': epoch_acc, 'custom_step' : epoch})
                 
 
             print(f'Epoch {phase} Loss: {epoch_loss :>.4f} Acc: {epoch_acc:>.4f}')
 
             # deep copy the model
-            if phase == 'val' and epoch_loss < best_loss:
-                best_all_labels, best_all_preds = [], []
+            if  epoch_loss < best_loss and phase == 'val':
+                best_all_labels, best_all_preds, best_all_prob = [], [], []
                 best_loss = epoch_loss
                 best_model_wts = copy.deepcopy(net.state_dict())
 
                 best_all_labels = all_labels
                 best_all_preds = all_preds
+                best_all_prob = all_prob
 
-            if epoch+1 == num_epoch:
+            if epoch+1 == num_epoch and phase == 'val':
                 # ROC
-                wandb.log({'roc': wandb.plots.ROC(best_all_labels, best_all_preds, classes_name)})
+                wandb.log({'roc': wandb.plots.ROC(best_all_labels, best_all_prob, classes_name)})
                 # Precision Recall
-                wandb.log({'pr': wandb.plots.precision_recall(best_all_labels, best_all_preds, classes_name)})
+                wandb.log({'pr': wandb.plots.precision_recall(best_all_labels, best_all_prob, classes_name)})
                 # Confusion Matrix
                 wandb.sklearn.plot_confusion_matrix(best_all_labels, best_all_preds, labels=classes_name)
 
