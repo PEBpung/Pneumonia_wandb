@@ -62,8 +62,9 @@ num_iteration = {
 """
 
 datasets = {x: DiseaseDataset(data_dir=os.path.join(data_dir, x), img_size=512, bit=8, data_type='img', mode= x ) for x in ['train', 'val']}
-dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=False, num_workers=0) for x in ['train', 'val']}
-dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
+sub_dataset = {x: torch.utils.data.Subset(datasets[x], indices=range(0, len(datasets[x]), 5)) for x in ['train', 'val']}
+dataloaders = {x: DataLoader(sub_dataset[x], batch_size=batch_size, shuffle=False, num_workers=0) for x in ['train', 'val']}
+dataset_sizes = {x: len(sub_dataset[x]) for x in ['train', 'val']}
 num_iteration = {x: np.ceil(dataset_sizes[x] / batch_size) for x in ['train', 'val']}
 
 #############################################################################################################################
