@@ -5,16 +5,19 @@ import numpy as np
 import gc
 from sklearn.metrics import confusion_matrix
 
-def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim, scheduler, device, wandb, num_epoch):
+def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim, scheduler, device, classes_name, wandb, num_epoch):
     wandb.watch(net, criterion, log='all', log_freq=10)
     
     since = time.time()
 
     best_model_wts = copy.deepcopy(net.state_dict())
     best_loss = 100
-    all_labels, all_preds, all_prob = [], [], []
+
+    classes_name = classes_name
 
     for epoch in range(num_epoch):
+        all_labels, all_preds = [], []
+
         for phase in ['train', 'val']:
             if phase == 'train':
                 net.train()
@@ -24,8 +27,6 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
             loss_arr = []
             running_corrects = 0
             running_loss = 0.0
-            
-            classes = ['Atypical','Indeterminate', 'Negative', 'Typical']
 
             #train dataset 로드하기
             for iteration_th, (inputs, labels) in enumerate(dataloaders[phase]): #iteration_th: 몇 번재 iteration 인지 알려 줌 "ex) batch_th=0 ← 첫 번째 batch 시작"
@@ -51,14 +52,13 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
                         loss.backward() #계산된 loss에 의해 backward (gradient) 계산
                         optim.step() #계산된 gradient를 참고하여 backpropagation으로 update
                         
-                        wandb.log({"Iter_loss": np.mean(loss_arr)})
+                        wandb.log({"Train Iteration loss": np.mean(loss_arr)})
                         print("TRAIN: EPOCH %04d / %04d | ITERATION %04d / %04d | LOSS %.4f" %
-                        (epoch, num_epoch, iteration_th, num_iteration['train'], np.mean(loss_arr)))
+                        (epoch+1, num_epoch, iteration_th, num_iteration['train'], np.mean(loss_arr)))
 
                     elif phase == 'val':
                         all_labels += labels.to("cpu")
-                        all_preds += preds.to("cpu")
-                        all_prob.extend(outputs.to("cpu").detach().numpy())
+                        all_preds += preds.to("cpu") # .detach()를 붙여야 될까?
                          
 
                 running_loss += loss.item() * inputs.size(0)
@@ -70,24 +70,31 @@ def train_model(dataloaders, dataset_sizes, num_iteration, net, criterion, optim
 
             if phase == 'train':
                 scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
-                wandb.log({'train_loss': epoch_loss, 'train_acc': epoch_acc})
+                #scheduler.step(np.mean(loss_arr)) #←← warm-up 사용하지 않을 시 learning rate scheduler 실행
+                wandb.log({'train_epoch_loss': epoch_loss, 'Epoch Train ACC': epoch_acc})
             
             elif phase == 'val':
-                print(f"VALID: EPOCH {epoch:>04d} / {num_epoch:>04d} | LOSS  {np.mean(loss_arr):>.4f}")
-                wandb.log({'val_loss': epoch_loss, 'val_acc': epoch_acc})
-                # ROC
-                wandb.log({'roc': wandb.plots.ROC(all_labels, all_prob, classes)})
-                # Precision Recall
-                wandb.log({'pr': wandb.plots.precision_recall(all_labels, all_prob, classes)})
-                # Confusion Matrix
-                wandb.sklearn.plot_confusion_matrix(all_labels, all_preds, labels=classes)
+                wandb.log({'val_epoch_loss': epoch_loss, 'Epoch Val ACC': epoch_acc})
+                
 
-            print('Epoch {} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+            print(f'Epoch {phase} Loss: {epoch_loss :>.4f} Acc: {epoch_acc:>.4f}')
 
             # deep copy the model
             if phase == 'val' and epoch_loss < best_loss:
+                best_all_labels, best_all_preds = [], []
                 best_loss = epoch_loss
                 best_model_wts = copy.deepcopy(net.state_dict())
+
+                best_all_labels = all_labels
+                best_all_preds = all_preds
+
+            if epoch+1 == num_epoch:
+                # ROC
+                wandb.log({'roc': wandb.plots.ROC(best_all_labels, best_all_preds, classes_name)})
+                # Precision Recall
+                wandb.log({'pr': wandb.plots.precision_recall(best_all_labels, best_all_preds, classes_name)})
+                # Confusion Matrix
+                wandb.sklearn.plot_confusion_matrix(best_all_labels, best_all_preds, labels=classes_name)
 
         gc.collect()
         torch.cuda.empty_cache()
