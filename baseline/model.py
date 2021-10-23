@@ -1,5 +1,20 @@
 import torch.nn as nn
 import torchvision.models as models
+from efficientnet_pytorch import EfficientNet
+
+class Efficient(nn.Module):
+    def __init__(self, img_channel, num_classes):
+        super(Efficient, self).__init__()
+        #  advprop : Adversarial Propagation
+        self.backbone = EfficientNet.from_pretrained("efficientnet-b0", advprop=True, num_classes=num_classes)
+        self.backbone._conv_stem.in_channels = img_channel
+        self.weight = self.backbone._conv_stem.weight.mean(img_channel, keepdim=True)
+        self.backbone._conv_stem.weight = nn.Parameter(self.weight)
+    
+    def forward(self, x):
+        x = self.backbone(x)
+        return x
+
 
 class PneumoniaNet(nn.Module):
     def __init__(self, img_channel, num_classes, pretrained=True):
