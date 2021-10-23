@@ -2,3 +2,4 @@ input/
 wandb/
 __pycache__/
 dataset/
+*/test.py
