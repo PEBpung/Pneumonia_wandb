@@ -103,7 +103,6 @@ def train_model(net, criterion, optim, num_epoch):
                 best_loss = epoch_loss
                 best_model_wts = copy.deepcopy(net.state_dict())
 
-        print()
             
 
     time_elapsed = time.time() - since
@@ -147,10 +146,10 @@ for i in range(2):
 
     loader_since = time.time()
     print('-' * 10)
-    if i == 1:
+    if i == 0:
         print('Getitem_Open_Albument_Dataset')
         datasets = {x: GetAlbData(data_dir=os.path.join(data_dir, x), img_size=512, bit=8, data_type='img', mode= x, num_cls=num_classes) for x in ['train', 'val']}
-    elif i == 0:
+    elif i == 1:
         print('Init_Open_Transforms_Dataset')
         datasets = {x: InitTransbData(data_dir=os.path.join(data_dir, x), img_size=512, bit=8, data_type='img', mode= x, num_cls=num_classes) for x in ['train', 'val']}
     elif i == 2:
@@ -165,5 +164,5 @@ for i in range(2):
     dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
     num_iteration = {x: np.ceil(dataset_sizes[x] / batch_size) for x in ['train', 'val']}
 
-    model_ft = train_model(net, criterion, optimizer_ft, num_epoch=1)
+    model_ft = train_model(net, criterion, optimizer_ft, num_epoch=20)
     print('-' * 10)
