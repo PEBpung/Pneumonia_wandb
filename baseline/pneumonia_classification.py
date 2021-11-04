@@ -15,6 +15,7 @@ import random
 
 from dataload_with_alb import DiseaseDataset
 from torch.utils.data import DataLoader
+from dataset_compare import GetAlbData, InitAlbData, InitTransbData
 
 from pytorch_warmup.warmup_scheduler import GradualWarmupScheduler
 
@@ -32,46 +33,14 @@ np.random.seed(random_seed)
 
 
 ##########################################데이터 로드 하기#################################################
-data_dir = os.path.join(os.getcwd(), "input/RSNA_COVID_512")
+data_dir = os.path.join(os.getcwd(), "RSNA_COVID_png_512")
 print(data_dir)
 batch_size= 8
-"""
-dataset_train = DiseaseDataset(data_dir=os.path.join(data_dir, 'train'), img_size=224, bit=8, data_type='img', mode='train')
-train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=False, num_workers=0)
-
-dataset_val = DiseaseDataset(data_dir=os.path.join(data_dir, 'val'), img_size=224, bit=8, data_type='img', mode='val')
-val_loader = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=0)
-
-dataloaders = {
-    "train": train_loader,
-    "val": val_loader
-}
-
-#↓↓Data 총 개수 (train 폴더 데이터 개수 or val 폴더 데이터 개수 ← batch 계산 용)
-dataset_sizes = {
-    "train": len(dataset_train),
-    "val": len(dataset_val)
-}
-
-#↓↓Total number of iterations per an epoch
-num_iteration = {
-    "train": np.ceil(dataset_sizes["train"] / batch_size),
-    "val": np.ceil(dataset_sizes["val"] / batch_size)
-}
-
-"""
-
-datasets = {x: DiseaseDataset(data_dir=os.path.join(data_dir, x), img_size=512, bit=8, data_type='img', mode= x ) for x in ['train', 'val']}
-sub_dataset = {x: torch.utils.data.Subset(datasets[x], indices=range(0, len(datasets[x]), 5)) for x in ['train', 'val']}
-dataloaders = {x: DataLoader(sub_dataset[x], batch_size=batch_size, shuffle=False, num_workers=0) for x in ['train', 'val']}
-dataset_sizes = {x: len(sub_dataset[x]) for x in ['train', 'val']}
-num_iteration = {x: np.ceil(dataset_sizes[x] / batch_size) for x in ['train', 'val']}
-
 #############################################################################################################################
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def train_model(net, criterion, optim, scheduler, num_epoch):
+def train_model(net, criterion, optim, num_epoch):
     since = time.time()
 
     best_model_wts = copy.deepcopy(net.state_dict())
@@ -112,24 +81,22 @@ def train_model(net, criterion, optim, scheduler, num_epoch):
                         loss.backward() #계산된 loss에 의해 backward (gradient) 계산
                         optim.step() #계산된 gradient를 참고하여 backpropagation으로 update
                         
-                        print("TRAIN: EPOCH %04d / %04d | ITERATION %04d / %04d | LOSS %.4f" %
-                        (epoch + 1, num_epoch, iteration_th, num_iteration['train'], np.mean(loss_arr)))
+                        # print("TRAIN: EPOCH %04d / %04d | ITERATION %04d / %04d | LOSS %.4f" %
+                        #(epoch + 1, num_epoch, iteration_th, num_iteration['train'], np.mean(loss_arr)))
 
                     elif phase == 'val':
-                        print()
-                        print("VALID: EPOCH %04d / %04d | BATCH %04d / %04d | LOSS %.4f" %
-                                (epoch + 1, num_epoch, num_iteration['val'], num_iteration['val'], np.mean(loss_arr))) 
+                        pass
+                        # print()
+                        # print("VALID: EPOCH %04d / %04d | BATCH %04d / %04d | LOSS %.4f" %
+                        #         (epoch + 1, num_epoch, num_iteration['val'], num_iteration['val'], np.mean(loss_arr))) 
 
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
 
-                if phase == 'train':
-                    scheduler.step_ReduceLROnPlateau(np.mean(loss_arr)) #learning rate scheduler 실행
-
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
-            print('Epoch {} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
+            # print('Epoch {} Loss: {:.4f} Acc: {:.4f}'.format(phase, epoch_loss, epoch_acc))
 
             # deep copy the model
             if epoch_loss < best_loss:
@@ -142,6 +109,7 @@ def train_model(net, criterion, optim, scheduler, num_epoch):
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
+    print()
     print('Best val loss: {:4f}'.format(best_loss))
 
     # load best model weights
@@ -151,7 +119,7 @@ def train_model(net, criterion, optim, scheduler, num_epoch):
 ####train 폴더 안에 클래스 개수 만큼의 폴더가 있음######
 num_classes =  len(os.listdir(os.path.join(data_dir, 'train'))) 
 
-net = model.PneumoniaNet(img_channel=1, num_classes=num_classes)
+net = model.ResNet50(img_channel=1, num_classes=num_classes)
 # net = model.ResNet50(img_channel=1, num_classes=num_classes)
 
 #딥러닝 모델 GPU 업로드
@@ -159,10 +127,6 @@ net = net.to(device)
 
 criterion = nn.CrossEntropyLoss()
 
-# Observe that all parameters are being optimized
-
-
-# optimizer_ft = optim.Adam(net.parameters(), lr=0.0001)
 
 optimizer_ft = optim.SGD(net.parameters(), lr=0.0001, momentum=0.9)
 
@@ -172,6 +136,34 @@ scheduler_lr = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer_ft
                                          factor=0.5,
                                          patience=10,)
 
-scheduler_warmup = GradualWarmupScheduler(optimizer_ft, multiplier=1, total_epoch=5, after_scheduler=scheduler_lr)
 
-model_ft = train_model(net, criterion, optimizer_ft, scheduler_warmup, num_epoch=3)
+
+for i in range(2):
+    print()
+    
+    datasets = {x: DiseaseDataset(data_dir=os.path.join(data_dir, x), img_size=512, bit=8, data_type='img', mode= x ) for x in ['train', 'val']}
+    num_classes =  len(os.listdir(os.path.join(data_dir, 'train')))
+    
+
+    loader_since = time.time()
+    print('-' * 10)
+    if i == 1:
+        print('Getitem_Open_Albument_Dataset')
+        datasets = {x: GetAlbData(data_dir=os.path.join(data_dir, x), img_size=512, bit=8, data_type='img', mode= x, num_cls=num_classes) for x in ['train', 'val']}
+    elif i == 0:
+        print('Init_Open_Transforms_Dataset')
+        datasets = {x: InitTransbData(data_dir=os.path.join(data_dir, x), img_size=512, bit=8, data_type='img', mode= x, num_cls=num_classes) for x in ['train', 'val']}
+    elif i == 2:
+        print('Init_Open_Albument_Dataset')
+        datasets = {x: InitAlbData(data_dir=os.path.join(data_dir, x), img_size=512, bit=8, data_type='img', mode= x, num_cls=num_classes) for x in ['train', 'val']}
+
+    print() 
+    dataloaders = {x: DataLoader(datasets[x], batch_size=batch_size, shuffle=False, num_workers=0) for x in ['train', 'val']}
+    time_elapsed = time.time() - loader_since
+    print(f'Dataload complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.4f}s')
+
+    dataset_sizes = {x: len(datasets[x]) for x in ['train', 'val']}
+    num_iteration = {x: np.ceil(dataset_sizes[x] / batch_size) for x in ['train', 'val']}
+
+    model_ft = train_model(net, criterion, optimizer_ft, num_epoch=1)
+    print('-' * 10)

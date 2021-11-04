@@ -2,4 +2,5 @@ input/
 wandb/
 __pycache__/
 dataset/
-*/test.py
+test.py
+RSNA_COVID_png_512/
